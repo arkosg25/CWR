@@ -1,0 +1,54 @@
+@startuml
+
+alt :Search existing notification config  
+NotificationConfigAPI<-> SearchConfigImplementationProcess : searchNotificationConfig(EventType)
+critical
+SearchConfigImplementationProcess-> SearchConfigImplementationProcess : Validate if supplied event exists in nodeConfig 
+
+
+alt : ELSE - EXIT CONDITION:
+SearchConfigImplementationProcess -> SearchConfigImplementationProcess : No Result returned for SearchNotificationConfig API if Event doesnt exist\n GRACEFUL EXIT.
+end 
+
+
+SearchConfigImplementationProcess -> SearchConfigImplementationProcess : Query **nodeConfig** table to retrieve all NotificationID associated with the event.
+
+alt : ELSE - EXIT CONDITION:
+SearchConfigImplementationProcess-> SearchConfigImplementationProcess : No Result returned for SearchNotificationConfig API if no NotificationID returned  \n GRACEFUL EXIT.
+end
+
+SearchConfigImplementationProcess->SearchConfigImplementationProcess: Query **notificationType** tabel with ALL NotificationID returned from querying NodeConfig table in above step \n to retrieve TypeID
+ 
+SearchConfigImplementationProcess -> SearchConfigImplementationProcess : Query **notificationTemplate** table for each TypeID returned by querying NotificationType table in above step \n to retrieve all TemplateID 
+end 
+
+
+critical :Create or Update Notfication Config
+NotificationConfigAPI-> CreateConfigImplementationProcess : createNotificationConfig(EventType)
+CreateConfigImplementationProcess -> CreateConfigImplementationProcess : UPSERT into **nodeConfig** table for the Event
+CreateConfigImplementationProcess -> CreateConfigImplementationProcess : UPSERT into **notificationType** table for the Event
+CreateConfigImplementationProcess -> CreateConfigImplementationProcess : UPSERT into **notificationTemplate** table for the Event
+NotificationConfigAPI <- CreateConfigImplementationProcess : Success OR Failure Response
+
+
+
+
+end 
+
+alt : Search existing AlertConfig
+NotificationConfigAPI <-> SearchConfigImplementationProcess : getAlertConfig(nodeType)
+SearchConfigImplementationProcess -> SearchConfigImplementationProcess : Query **alertConfig** table \n to retrieve current alert config for given nodeType
+end 
+
+critical : Create or modify AlertConfig
+NotificationConfigAPI -> CreateConfigImplementationProcess: createAlertConfig
+CreateConfigImplementationProcess -> CreateConfigImplementationProcess: UPSERT into **AlertConfig** table 
+NotificationConfigAPI<-CreateConfigImplementationProcess : Success Or Failure Response 
+
+
+
+end 
+
+
+
+@enduml

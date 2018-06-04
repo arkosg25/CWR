@@ -1,0 +1,37 @@
+@startuml
+DEEP_Receiver -> EMS_Receiver : Publish from DEEP to Notification EMS server
+EMS_Receiver -> ImplementationProcess : Event Payload
+ImplementationProcess <-> NotificationConfig : notification/config/searchNotificationConfig(EventType)
+ImplementationProcess <-> CHUB : getCustomerPreference(BAN,MSISDN,Role)
+
+Critical
+ImplementationProcess->ImplementationProcess: IF Valid Notification exists \n THEN create Notification List
+alt : EXIT CONDITION  
+ImplementationProcess->ImplementationProcess: No Notification will be created \n IF No Valid Notification exists OR NO recipients found \n GRACEFUL EXIT 
+END
+
+ImplementationProcess->ImplementationProcess: if Duplicate Recipients exist \n THEN Filter duplicate recipients
+ImplementationProcess->ImplementationProcess: if multiple notification type (SMS,Email,AAL,Alert,Int Email) \n THEN publish to corresponding handlers
+
+end
+ImplementationProcess -> publishToTargetHandler
+publishToTargetHandler <-> SMS_API :To Generate SMS for Customers [[http://flows.corporate.t-mobile.com/all-diagrams/sequence_diagrams/dnd/ce.dsg.dnd.alert.txt/   SMS Processor]] 
+publishToTargetHandler <-> EMAIL_API: To Send Email to Customers [[http://flows.corporate.t-mobile.com/all-diagrams/sequence_diagrams/dnd/ce.dsg.dnd.alert.txt/   Email Processor]] 
+publishToTargetHandler <-> IntEmail_API:to send internal email for customers [[http://flows.corporate.t-mobile.com/all-diagrams/sequence_diagrams/dnd/ce.dsg.dnd.alert.txt/   Internal Email Processor]]  
+publishToTargetHandler <-> ALERTS_API:Create Alerts for customers [[http://flows.corporate.t-mobile.com/all-diagrams/sequence_diagrams/dnd/ce.dsg.dnd.alert.txt/   ALERT Processor]] 
+publishToTargetHandler <-> AAL_API :Create Acc Activity Log for customers [[http://flows.corporate.t-mobile.com/all-diagrams/sequence_diagrams/dnd/ce.dsg.dnd.alert.txt/   AAL Processor]] 
+publishToTargetHandler <-> EER_API :Create EER for Customer [[http://flows.corporate.t-mobile.com/all-diagrams/sequence_diagrams/dnd/ce.dsg.dnd.alert.txt/   EER Processor]] 
+
+
+alt :Failure-Retry
+EMS_Receiver <-> EMS_Receiver: Retry 10 times
+
+end
+
+alt :Failure-Retry
+DEEP_Receiver -> DEEP_Receiver: Retry Based on DEEP Rules
+
+
+end
+
+@enduml
